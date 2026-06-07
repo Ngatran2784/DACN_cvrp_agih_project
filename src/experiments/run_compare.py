@@ -167,7 +167,7 @@ def make_wide_row(inst, cw_routes, cw_cost, cw_time, paper_routes, paper_cost, p
         METHOD_PROPOSED: prop_cost,
     }
 
-    best_method = min(values, key=values.get)
+    best_method = min(values, key=lambda k: values[k])
 
     return {
         "Instance": inst["id"],
