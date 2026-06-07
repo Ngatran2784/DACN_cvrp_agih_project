@@ -1,0 +1,4 @@
+Method,Type,Distance,Vehicles,Runtime,Gap_vs_Paper_%,Gap_vs_OR_Tools_%
+Clarke-Wright,Old heuristic,6.221975,3.85,0.00261,-18.466,3.2954999999999997
+Paper-Attention-Greedy,Paper method,7.740785,3.7,0.043730000000000005,0.0,28.311
+Proposed-AGIH-2opt,Proposed method,6.1621250000000005,3.85,0.071265,-19.312,2.2595
