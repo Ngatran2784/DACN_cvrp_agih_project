@@ -1,0 +1,7 @@
+Method_A,Method_B,A_better_than_B_%,Tie_%,Avg_Improvement_%,Num_Instances
+Clarke-Wright,Paper-RL-Attention,100.0,0.0,33.17,20
+Clarke-Wright,Proposed-AGIH-2opt,0.0,15.0,-1.02,20
+Paper-RL-Attention,Clarke-Wright,0.0,0.0,-51.64,20
+Paper-RL-Attention,Proposed-AGIH-2opt,0.0,0.0,-53.16,20
+Proposed-AGIH-2opt,Clarke-Wright,85.0,15.0,1.0,20
+Proposed-AGIH-2opt,Paper-RL-Attention,100.0,0.0,33.85,20

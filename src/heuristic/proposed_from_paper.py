@@ -1,53 +1,93 @@
 import time
+import json
 
+from src.baselines.clarke_wright import solve_clarke_wright
 from src.heuristic.utils import compute_distance_matrix, solution_distance
 from src.heuristic.two_opt import two_opt_solution
 from src.heuristic.relocate import relocate_solution
 
 
-def normalize_routes(routes):
-    normalized = []
+def improve_routes(routes, demands, capacity, dist):
+    best_routes = [r[:] for r in routes]
+    best_cost = solution_distance(best_routes, dist)
 
-    for route in routes:
-        if not route:
-            continue
+    # 2-opt
+    candidate = two_opt_solution(best_routes, dist)
+    candidate_cost = solution_distance(candidate, dist)
 
-        r = [int(node) for node in route]
+    if candidate_cost < best_cost:
+        best_routes = candidate
+        best_cost = candidate_cost
 
-        if r[0] != 0:
-            r = [0] + r
+    # relocate
+    candidate = relocate_solution(best_routes, demands, capacity, dist, max_iter=50)
+    candidate_cost = solution_distance(candidate, dist)
 
-        if r[-1] != 0:
-            r = r + [0]
+    if candidate_cost < best_cost:
+        best_routes = candidate
+        best_cost = candidate_cost
 
-        if len(r) > 2:
-            normalized.append(r)
+    # 2-opt lại lần cuối
+    candidate = two_opt_solution(best_routes, dist)
+    candidate_cost = solution_distance(candidate, dist)
 
-    return normalized
+    if candidate_cost < best_cost:
+        best_routes = candidate
+        best_cost = candidate_cost
+
+    return best_routes
 
 
-def solve_proposed_from_paper_routes(coords, demands, capacity, paper_routes):
+def solve_proposed_from_paper(coords, demands, capacity, paper_routes):
     """
     Proposed AGIH-2opt.
 
-    Input là route sinh bởi thuật toán bài báo.
-    Thuật toán đề xuất cải thiện route này bằng:
-    - 2-opt trên từng route
-    - relocate local search giữa các route
-    - 2-opt lần cuối
+    Hybrid seed:
+    - Clarke-Wright seed
+    - Paper-RL-Attention seed
 
-    Như vậy Proposed có cơ sở tốt hơn hoặc bằng Paper route nếu local search tìm được cải thiện.
+    Chọn seed tốt nhất rồi cải thiện bằng:
+    - 2-opt
+    - relocate
+
+    Thuật toán đảm bảo không trả nghiệm xấu hơn seed tốt nhất.
     """
     start = time.time()
-
     dist = compute_distance_matrix(coords)
-    routes = normalize_routes(paper_routes)
 
-    routes = two_opt_solution(routes, dist)
-    routes = relocate_solution(routes, demands, capacity, dist, max_iter=80)
-    routes = two_opt_solution(routes, dist)
+    candidate_solutions = []
 
-    cost = solution_distance(routes, dist)
+    # Seed 1: Clarke-Wright
+    cw_routes, cw_cost, _ = solve_clarke_wright(coords, demands, capacity)
+    candidate_solutions.append(("Clarke-Wright seed", cw_routes, cw_cost))
+
+    # Seed 2: Paper-RL-Attention
+    paper_cost = solution_distance(paper_routes, dist)
+    candidate_solutions.append(("Paper-RL-Attention seed", paper_routes, paper_cost))
+
+    # Chọn seed tốt nhất
+    best_name, best_routes, best_cost = min(
+        candidate_solutions,
+        key=lambda x: x[2]
+    )
+
+    # Cải thiện seed tốt nhất
+    improved_routes = improve_routes(best_routes, demands, capacity, dist)
+    improved_cost = solution_distance(improved_routes, dist)
+
+    # Nếu local search không cải thiện thì giữ seed tốt nhất
+    if improved_cost > best_cost:
+        final_routes = best_routes
+        final_cost = best_cost
+    else:
+        final_routes = improved_routes
+        final_cost = improved_cost
+
     runtime = time.time() - start
 
-    return routes, float(cost), runtime
+    return final_routes, float(final_cost), runtime
+def solve_proposed_from_paper_routes(coords, demands, capacity, paper_routes):
+    """
+    Alias function để run_compare.py gọi đúng tên.
+    """
+    return solve_proposed_from_paper(coords, demands, capacity, paper_routes)

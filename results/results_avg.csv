@@ -1,0 +1,4 @@
+Method,Type,Distance,Vehicles,Runtime
+Clarke-Wright,Old heuristic,6.221975,3.85,0.001195
+Paper-RL-Attention,Paper method,9.418854999999999,5.0,0.07719000000000001
+Proposed-AGIH-2opt,Proposed method,6.1621250000000005,3.85,0.008709999999999999
