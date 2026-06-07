@@ -1,3 +1,0 @@
-PAPER_METHOD,PROBLEM_SIZE,COMPARED_WITH,WINNING_RATE_%,SOURCE_NOTE
-Paper RL-BS(10),VRP50,Clarke-Wright / CW-Greedy,99.8,"Nazari et al. 2018, Figure 3c"
-Paper RL-BS(10),VRP100,Clarke-Wright / CW-Greedy,100.0,"Nazari et al. 2018, Figure 3d"
