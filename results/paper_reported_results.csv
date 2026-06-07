@@ -1,0 +1,5 @@
+Problem,Paper_Method,Compared_Method,Metric,Value,Meaning
+VRP50,RL-BS(10),CW-Greedy,Winning rate (%),99.8,RL-BS(10) cho route ngắn hơn CW-Greedy trong 99.8% mẫu VRP50 theo bài báo.
+VRP50,RL-BS(10),OR-Tools,Winning rate (%),60.2,RL-BS(10) cho route ngắn hơn OR-Tools trong 60.2% mẫu VRP50 theo bài báo.
+VRP100,RL-BS(10),CW-Greedy,Winning rate (%),100.0,RL-BS(10) cho route ngắn hơn CW-Greedy trong 100.0% mẫu VRP100 theo bài báo.
+VRP100,RL-BS(10),OR-Tools,Winning rate (%),62.2,RL-BS(10) cho route ngắn hơn OR-Tools trong 62.2% mẫu VRP100 theo bài báo.

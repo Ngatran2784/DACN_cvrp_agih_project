@@ -1,0 +1,4 @@
+Group,Algorithm,Source,Evidence,Main_Result,Note
+Thuật toán cũ,Clarke-Wright Savings,Project code,Chạy trực tiếp trên bộ test ngẫu nhiên của project,Avg Distance = 6.2220,Baseline heuristic truyền thống.
+Thuật toán bài báo,Paper RL-BS(10),"Nazari et al., NeurIPS 2018 reported result","Số liệu winning rate đúng theo bài báo, không phải model tự train lại",Thắng CW-Greedy 100.0% trên VRP100 theo paper,Dùng làm mốc tham chiếu bài báo. Route chi tiết không có vì paper không công bố route từng instance.
+Thuật toán đề xuất,Proposed AGIH-2opt,Project code,Chạy trực tiếp trên cùng bộ test với Clarke-Wright,Avg Distance = 6.1621; thắng Clarke-Wright 85.00% instance,Hybrid insertion + 2-opt + relocate; route chi tiết được hiển thị trong dashboard.

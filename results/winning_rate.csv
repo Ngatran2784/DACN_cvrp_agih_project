@@ -1,7 +1,7 @@
 Method_A,Method_B,A_better_than_B_%,Tie_%,Avg_Improvement_%,Num_Instances
-Clarke-Wright,Paper-Attention-Greedy,100.0,0.0,18.46,20
+Clarke-Wright,OR-Tools Reference,5.0,0.0,-3.54,20
 Clarke-Wright,Proposed-AGIH-2opt,0.0,15.0,-1.02,20
-Paper-Attention-Greedy,Clarke-Wright,0.0,0.0,-24.45,20
-Paper-Attention-Greedy,Proposed-AGIH-2opt,0.0,0.0,-25.65,20
+OR-Tools Reference,Clarke-Wright,95.0,0.0,3.34,20
+OR-Tools Reference,Proposed-AGIH-2opt,75.0,10.0,2.37,20
 Proposed-AGIH-2opt,Clarke-Wright,85.0,15.0,1.0,20
-Proposed-AGIH-2opt,Paper-Attention-Greedy,100.0,0.0,19.31,20
+Proposed-AGIH-2opt,OR-Tools Reference,15.0,10.0,-2.5,20
