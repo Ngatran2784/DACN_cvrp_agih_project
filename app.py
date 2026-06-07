@@ -5,11 +5,15 @@ import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
 
-
+st.info(
+    "Reproduced Paper-RL-Attention là phiên bản tái hiện từ mã nguồn mở theo hướng bài báo. "
+    "Kết quả có thể khác số liệu gốc vì không có checkpoint, seed và test instances gốc của tác giả."
+)
 st.set_page_config(
     page_title="CVRP 3-Algorithm Comparison",
     page_icon="🚚",
     layout="wide",
+    
 )
 
 
