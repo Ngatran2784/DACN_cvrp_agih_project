@@ -6,84 +6,84 @@ import plotly.express as px
 import plotly.graph_objects as go
 import streamlit as st
 
-
-st.set_page_config(
-    page_title="CVRP Algorithm Comparison",
-    page_icon="🚚",
-    layout="wide",
-)
+st.set_page_config(page_title="CVRP 3-Algorithm Comparison", page_icon="🚚", layout="wide")
 
 st.markdown(
     """
     <style>
-    .block-container { padding-top: 1.5rem; padding-bottom: 2rem; }
-    .hero {
+    .main { background-color: #f6f8fc; }
+    .block-container { padding-top: 2rem; padding-bottom: 2rem; }
+    .title-box {
         background: linear-gradient(135deg, #1e3a8a, #2563eb);
-        padding: 28px 34px;
+        padding: 28px 32px;
         border-radius: 22px;
         color: white;
         margin-bottom: 22px;
         box-shadow: 0 10px 28px rgba(37, 99, 235, 0.22);
     }
-    .hero h1 { margin: 0; font-size: 34px; font-weight: 850; }
-    .hero p { margin-top: 10px; font-size: 16px; opacity: 0.92; }
+    .title-box h1 { margin: 0; font-size: 34px; font-weight: 850; }
+    .title-box p { margin-top: 10px; font-size: 16px; opacity: 0.94; }
     .note-box {
         background: #fff7ed;
         border: 1px solid #fed7aa;
-        color: #7c2d12;
-        padding: 14px 18px;
-        border-radius: 14px;
-        margin-bottom: 16px;
+        color: #9a3412;
+        padding: 16px 20px;
+        border-radius: 16px;
+        margin-bottom: 20px;
+        line-height: 1.6;
     }
     .metric-card {
         background: white;
-        padding: 20px 22px;
+        padding: 22px 24px;
         border-radius: 18px;
         border: 1px solid #e5e7eb;
         box-shadow: 0 8px 20px rgba(15, 23, 42, 0.06);
     }
     .metric-label { color: #64748b; font-size: 14px; font-weight: 700; }
-    .metric-value { color: #0f172a; font-size: 25px; font-weight: 850; margin-top: 8px; }
-    .section-title { font-size: 23px; font-weight: 850; color: #0f172a; margin-top: 12px; margin-bottom: 14px; }
+    .metric-value { color: #0f172a; font-size: 26px; font-weight: 850; margin-top: 8px; }
+    .section-title { font-size: 24px; font-weight: 850; color: #0f172a; margin-top: 20px; margin-bottom: 16px; }
     .route-box {
         background: white;
         padding: 16px 20px;
-        border-radius: 15px;
+        border-radius: 14px;
         border: 1px solid #e5e7eb;
         margin-bottom: 10px;
         box-shadow: 0 6px 16px rgba(15, 23, 42, 0.05);
     }
     .route-title { font-weight: 850; color: #1e3a8a; margin-bottom: 6px; }
+    div[data-testid="stDataFrame"] { border-radius: 16px; overflow: hidden; }
     </style>
     """,
     unsafe_allow_html=True,
 )
 
+paths = {
+    "summary": Path("results/results_summary.csv"),
+    "avg": Path("results/results_avg.csv"),
+    "wide": Path("results/project_wide.csv"),
+    "win": Path("results/winning_rate.csv"),
+    "paper": Path("results/paper_reported_results.csv"),
+    "three": Path("results/three_algorithm_summary.csv"),
+}
 
-summary_path = Path("results/results_summary.csv")
-avg_path = Path("results/results_avg.csv")
-win_path = Path("results/winning_rate.csv")
-paper_path = Path("results/paper_reported_results.csv")
-three_path = Path("results/three_method_comparison.csv")
-
-missing = [str(p) for p in [summary_path, avg_path, win_path, paper_path, three_path] if not p.exists()]
+missing = [str(p) for p in paths.values() if not p.exists()]
 if missing:
     st.error("Thiếu file kết quả. Hãy chạy: python -m src.experiments.run_compare")
-    st.write("File đang thiếu:", missing)
+    st.write("Các file đang thiếu:", missing)
     st.stop()
 
-
-df = pd.read_csv(summary_path)
-avg_df = pd.read_csv(avg_path)
-winning_df = pd.read_csv(win_path)
-paper_df = pd.read_csv(paper_path)
-three_df = pd.read_csv(three_path)
+df = pd.read_csv(paths["summary"])
+avg_df = pd.read_csv(paths["avg"])
+wide_df = pd.read_csv(paths["wide"])
+winning_df = pd.read_csv(paths["win"])
+paper_df = pd.read_csv(paths["paper"])
+three_df = pd.read_csv(paths["three"])
 
 st.markdown(
     """
-    <div class="hero">
-        <h1>🚚 CVRP Algorithm Comparison Dashboard</h1>
-        <p>So sánh 3 nhóm: thuật toán cũ, thuật toán bài báo và thuật toán đề xuất cho CVRP</p>
+    <div class="title-box">
+        <h1>🚚 CVRP 3-Algorithm Comparison Dashboard</h1>
+        <p>So sánh đúng 3 nhóm: thuật toán cũ, thuật toán bài báo và thuật toán đề xuất</p>
     </div>
     """,
     unsafe_allow_html=True,
@@ -92,176 +92,153 @@ st.markdown(
 st.markdown(
     """
     <div class="note-box">
-        <b>Lưu ý học thuật:</b> Paper RL-BS(10) được trình bày bằng số liệu công bố trong bài báo gốc.
-        Clarke-Wright, OR-Tools Reference và Proposed AGIH-2opt là các thuật toán chạy trực tiếp trong project.
-        Không trộn route chi tiết tự chạy với số liệu paper khi paper không công bố route từng instance.
+        <b>Lưu ý:</b> Dashboard chỉ hiển thị 3 thuật toán chính. Paper RL-BS(10) dùng số liệu công bố trong bài báo gốc. 
+        Clarke-Wright và Proposed-AGIH-2opt là hai thuật toán chạy trực tiếp trong project nên có bảng instance và bản đồ route.
     </div>
     """,
     unsafe_allow_html=True,
 )
 
+# Sidebar: no OR-Tools shown
 st.sidebar.title("⚙️ Bộ lọc")
-run_methods = sorted(df["Method"].unique())
-selected_methods = st.sidebar.multiselect("Chọn thuật toán chạy trong project", run_methods, default=run_methods)
-instance_list = sorted(df["Instance"].unique())
+display_methods = ["Clarke-Wright", "Proposed-AGIH-2opt"]
+selected_methods = st.sidebar.multiselect(
+    "Chọn thuật toán để xem route/project",
+    display_methods,
+    default=display_methods,
+)
+instance_list = sorted(df["INSTANCE"].unique())
 selected_instance = st.sidebar.selectbox("Chọn instance để xem route", instance_list)
-filtered_df = df[df["Method"].isin(selected_methods)].copy()
-filtered_avg = avg_df[avg_df["Method"].isin(selected_methods)].copy()
 
-best_project = filtered_avg.sort_values("Distance").iloc[0]
-fastest_project = filtered_avg.sort_values("Runtime").iloc[0]
-prop_row = avg_df[avg_df["Method"] == "Proposed-AGIH-2opt"]
-prop_distance = float(prop_row.iloc[0]["Distance"]) if not prop_row.empty else None
+route_df = df[df["METHOD"].isin(selected_methods)].copy()
+chart_avg = avg_df[avg_df["METHOD"].isin(display_methods)].copy()
+
+# Metrics
+proposed_avg = avg_df[avg_df["METHOD"] == "Proposed-AGIH-2opt"].iloc[0]
+best_project = chart_avg.sort_values("DISTANCE").iloc[0]
+fastest_project = chart_avg.sort_values("RUNTIME_S").iloc[0]
+prop_win_cw_row = winning_df[(winning_df["METHOD_A"] == "Proposed-AGIH-2opt") & (winning_df["METHOD_B"] == "Clarke-Wright")]
+prop_win_cw = float(prop_win_cw_row.iloc[0]["A_BETTER_THAN_B_%"]) if not prop_win_cw_row.empty else 0.0
 
 col1, col2, col3, col4 = st.columns(4)
 with col1:
-    st.markdown(f"""<div class="metric-card"><div class="metric-label">Số instance test</div><div class="metric-value">{df['Instance'].nunique()}</div></div>""", unsafe_allow_html=True)
+    st.markdown(f"<div class='metric-card'><div class='metric-label'>Số instance test</div><div class='metric-value'>{df['INSTANCE'].nunique()}</div></div>", unsafe_allow_html=True)
 with col2:
-    st.markdown(f"""<div class="metric-card"><div class="metric-label">Project distance tốt nhất</div><div class="metric-value">{best_project['Method']}</div></div>""", unsafe_allow_html=True)
+    st.markdown(f"<div class='metric-card'><div class='metric-label'>Distance tốt nhất trong project</div><div class='metric-value'>{best_project['METHOD']}</div></div>", unsafe_allow_html=True)
 with col3:
-    st.markdown(f"""<div class="metric-card"><div class="metric-label">Project runtime nhanh nhất</div><div class="metric-value">{fastest_project['Method']}</div></div>""", unsafe_allow_html=True)
+    st.markdown(f"<div class='metric-card'><div class='metric-label'>Runtime nhanh nhất trong project</div><div class='metric-value'>{fastest_project['METHOD']}</div></div>", unsafe_allow_html=True)
 with col4:
-    st.markdown(f"""<div class="metric-card"><div class="metric-label">Proposed Avg Distance</div><div class="metric-value">{prop_distance:.4f}</div></div>""", unsafe_allow_html=True)
-
+    st.markdown(f"<div class='metric-card'><div class='metric-label'>Proposed thắng Clarke-Wright</div><div class='metric-value'>{prop_win_cw:.2f}%</div></div>", unsafe_allow_html=True)
 
 tab1, tab2, tab3, tab4, tab5 = st.tabs([
-    "✅ So sánh 3 thuật toán",
-    "📊 Thực nghiệm project",
+    "📋 Bảng số liệu 3 thuật toán",
+    "📊 Bảng wide project",
     "📄 Số liệu bài báo",
     "🏆 Winning rate",
     "🗺️ Bản đồ lộ trình",
 ])
 
 with tab1:
-    st.markdown('<div class="section-title">Bảng so sánh 3 nhóm thuật toán</div>', unsafe_allow_html=True)
-    st.dataframe(three_df, use_container_width=True, hide_index=True)
-
-    st.markdown(
-        """
-        **Cách đọc bảng:**
-        - `Clarke-Wright Savings`: thuật toán cũ, chạy trực tiếp trong project.
-        - `Paper RL-BS(10)`: thuật toán bài báo, lấy đúng số liệu công bố trong paper.
-        - `Proposed AGIH-2opt`: thuật toán đề xuất, chạy trực tiếp trong project và có route visualization.
-        """
-    )
-
-with tab2:
-    st.markdown('<div class="section-title">Kết quả thực nghiệm chạy trực tiếp trong project</div>', unsafe_allow_html=True)
+    st.markdown('<div class="section-title">Bảng so sánh 3 thuật toán chính</div>', unsafe_allow_html=True)
     st.dataframe(
-        filtered_avg.style.format({
-            "Distance": "{:.4f}",
-            "Vehicles": "{:.2f}",
-            "Runtime": "{:.4f}",
-            "Gap_vs_OR_Tools_%": "{:.2f}",
-        }),
+        three_df.style.format({
+            "AVG_DISTANCE_CVRP20": "{:.4f}",
+            "AVG_VEHICLES_CVRP20": "{:.2f}",
+            "AVG_RUNTIME_S_CVRP20": "{:.4f}",
+            "PROJECT_WIN_VS_CLARKE_WRIGHT_%": "{:.2f}",
+            "PAPER_WIN_VS_OLD_VRP50_%": "{:.2f}",
+            "PAPER_WIN_VS_OLD_VRP100_%": "{:.2f}",
+        }, na_rep="—"),
         use_container_width=True,
         hide_index=True,
     )
+    st.caption("Paper RL-BS(10) chỉ có số liệu report từ bài báo, không có route từng instance. Vì vậy bảng không gán distance project cho paper.")
 
-    c1, c2 = st.columns(2)
-    with c1:
-        fig_distance = px.bar(
-            filtered_avg,
-            x="Method",
-            y="Distance",
-            color="Type",
-            text="Distance",
-            title="Average Distance - project experiment",
-        )
-        fig_distance.update_traces(texttemplate="%{text:.4f}", textposition="outside")
-        fig_distance.update_layout(height=420, margin=dict(l=20, r=20, t=60, b=20))
-        st.plotly_chart(fig_distance, use_container_width=True)
+    st.markdown('<div class="section-title">Biểu đồ project: Average Distance</div>', unsafe_allow_html=True)
+    fig = px.bar(
+        chart_avg,
+        x="METHOD",
+        y="DISTANCE",
+        color="TYPE",
+        text="DISTANCE",
+        title="Average Distance - project experiment",
+    )
+    fig.update_traces(texttemplate="%{text:.4f}", textposition="outside")
+    fig.update_layout(height=430, margin=dict(l=20, r=20, t=60, b=20), xaxis_title="Algorithm", yaxis_title="Average distance")
+    st.plotly_chart(fig, use_container_width=True)
 
-    with c2:
-        fig_runtime = px.bar(
-            filtered_avg,
-            x="Method",
-            y="Runtime",
-            color="Type",
-            text="Runtime",
-            title="Average Runtime - project experiment",
-        )
-        fig_runtime.update_traces(texttemplate="%{text:.4f}s", textposition="outside")
-        fig_runtime.update_layout(height=420, margin=dict(l=20, r=20, t=60, b=20))
-        st.plotly_chart(fig_runtime, use_container_width=True)
+with tab2:
+    st.markdown('<div class="section-title">Bảng kết quả dạng wide theo từng instance</div>', unsafe_allow_html=True)
+    st.dataframe(wide_df, use_container_width=True, hide_index=True)
 
-    st.markdown('<div class="section-title">Chi tiết từng instance</div>', unsafe_allow_html=True)
+    st.markdown('<div class="section-title">Kết quả trung bình trong project</div>', unsafe_allow_html=True)
     st.dataframe(
-        filtered_df[["Instance", "Method", "Type", "Distance", "Vehicles", "Runtime", "Gap_vs_OR_Tools_%"]].style.format({
-            "Distance": "{:.4f}",
-            "Runtime": "{:.4f}",
-            "Gap_vs_OR_Tools_%": "{:.2f}",
+        chart_avg.style.format({
+            "DISTANCE": "{:.4f}",
+            "VEHICLES": "{:.2f}",
+            "RUNTIME_S": "{:.4f}",
         }),
         use_container_width=True,
         hide_index=True,
     )
 
 with tab3:
-    st.markdown('<div class="section-title">Số liệu thuật toán bài báo theo paper</div>', unsafe_allow_html=True)
-    st.dataframe(paper_df, use_container_width=True, hide_index=True)
-
-    fig_paper = px.bar(
-        paper_df,
-        x="Compared_Method",
-        y="Value",
-        color="Problem",
-        barmode="group",
-        text="Value",
-        title="Paper RL-BS(10) winning rate reported in Nazari et al. (NeurIPS 2018)",
+    st.markdown('<div class="section-title">Số liệu Paper RL-BS(10) từ bài báo</div>', unsafe_allow_html=True)
+    st.dataframe(
+        paper_df.style.format({"WINNING_RATE_%": "{:.2f}"}),
+        use_container_width=True,
+        hide_index=True,
     )
-    fig_paper.update_traces(texttemplate="%{text:.1f}%", textposition="outside")
-    fig_paper.update_layout(
-        height=450,
-        yaxis_title="Winning rate (%)",
-        xaxis_title="Compared method",
-        margin=dict(l=20, r=20, t=60, b=20),
-    )
-    st.plotly_chart(fig_paper, use_container_width=True)
+    st.info("Các số liệu này lấy từ paper Nazari et al. (NeurIPS 2018). Không trộn với route chi tiết do project tự chạy.")
 
 with tab4:
-    st.markdown('<div class="section-title">Winning rate giữa các thuật toán chạy trong project</div>', unsafe_allow_html=True)
+    st.markdown('<div class="section-title">Winning rate trong project</div>', unsafe_allow_html=True)
     st.dataframe(
         winning_df.style.format({
-            "A_better_than_B_%": "{:.2f}",
-            "Tie_%": "{:.2f}",
-            "Avg_Improvement_%": "{:.2f}",
+            "A_BETTER_THAN_B_%": "{:.2f}",
+            "TIE_%": "{:.2f}",
+            "AVG_IMPROVEMENT_%": "{:.2f}",
         }),
         use_container_width=True,
         hide_index=True,
     )
 
-    proposed_rows = winning_df[winning_df["Method_A"] == "Proposed-AGIH-2opt"]
-    if not proposed_rows.empty:
+    prop_rows = winning_df[winning_df["METHOD_A"] == "Proposed-AGIH-2opt"]
+    if not prop_rows.empty:
         fig_win = px.bar(
-            proposed_rows,
-            x="Method_B",
-            y="A_better_than_B_%",
-            text="A_better_than_B_%",
-            title="Proposed-AGIH-2opt better than other reproduced methods (%)",
+            prop_rows,
+            x="METHOD_B",
+            y="A_BETTER_THAN_B_%",
+            text="A_BETTER_THAN_B_%",
+            title="Proposed-AGIH-2opt better than other project algorithms (%)",
         )
         fig_win.update_traces(texttemplate="%{text:.2f}%", textposition="outside")
-        fig_win.update_layout(height=420, yaxis_title="Winning rate (%)", xaxis_title="Compared method")
+        fig_win.update_layout(height=420, margin=dict(l=20, r=20, t=60, b=20), yaxis_title="Winning rate (%)", xaxis_title="Compared method")
         st.plotly_chart(fig_win, use_container_width=True)
 
 with tab5:
-    st.markdown('<div class="section-title">Trực quan hóa lộ trình xe</div>', unsafe_allow_html=True)
+    st.markdown('<div class="section-title">Bản đồ lộ trình</div>', unsafe_allow_html=True)
 
-    method_options = df[df["Instance"] == selected_instance]["Method"].unique()
+    method_options = [m for m in selected_methods if m in df[df["INSTANCE"] == selected_instance]["METHOD"].unique()]
+    if not method_options:
+        st.warning("Không có method để hiển thị route.")
+        st.stop()
+
     selected_method = st.selectbox("Chọn thuật toán", method_options)
+    row = df[(df["INSTANCE"] == selected_instance) & (df["METHOD"] == selected_method)].iloc[0]
 
-    row = df[(df["Instance"] == selected_instance) & (df["Method"] == selected_method)].iloc[0]
-    coords = json.loads(row["Coords"])
-    demands = json.loads(row["Demands"])
-    routes = json.loads(row["Routes"])
+    coords = json.loads(row["COORDS"])
+    demands = json.loads(row["DEMANDS"])
+    routes = json.loads(row["ROUTES"])
 
-    info1, info2, info3, info4 = st.columns(4)
-    info1.metric("Instance", selected_instance)
-    info2.metric("Distance", f"{row['Distance']:.4f}")
-    info3.metric("Vehicles", int(row["Vehicles"]))
-    info4.metric("Runtime", f"{row['Runtime']:.4f}s")
+    m1, m2, m3, m4 = st.columns(4)
+    m1.metric("Instance", selected_instance)
+    m2.metric("Distance", f"{row['DISTANCE']:.4f}")
+    m3.metric("Vehicles", int(row["VEHICLES"]))
+    m4.metric("Runtime", f"{row['RUNTIME_S']:.4f}s")
 
-    fig = go.Figure()
-    fig.add_trace(go.Scatter(
+    fig_map = go.Figure()
+    fig_map.add_trace(go.Scatter(
         x=[c[0] for c in coords[1:]],
         y=[c[1] for c in coords[1:]],
         mode="markers+text",
@@ -270,7 +247,7 @@ with tab5:
         marker=dict(size=10),
         name="Customers",
     ))
-    fig.add_trace(go.Scatter(
+    fig_map.add_trace(go.Scatter(
         x=[coords[0][0]],
         y=[coords[0][1]],
         mode="markers+text",
@@ -279,17 +256,15 @@ with tab5:
         marker=dict(size=18, symbol="square"),
         name="Depot",
     ))
-
     for idx, route in enumerate(routes, start=1):
-        fig.add_trace(go.Scatter(
+        fig_map.add_trace(go.Scatter(
             x=[coords[node][0] for node in route],
             y=[coords[node][1] for node in route],
             mode="lines+markers",
             name=f"Route {idx}",
             line=dict(width=3),
         ))
-
-    fig.update_layout(
+    fig_map.update_layout(
         title=f"{selected_method} - {selected_instance}",
         height=680,
         xaxis_title="X coordinate",
@@ -297,9 +272,9 @@ with tab5:
         plot_bgcolor="white",
         margin=dict(l=20, r=20, t=60, b=20),
     )
-    fig.update_xaxes(showgrid=True, gridwidth=1, gridcolor="#e5e7eb")
-    fig.update_yaxes(showgrid=True, gridwidth=1, gridcolor="#e5e7eb")
-    st.plotly_chart(fig, use_container_width=True)
+    fig_map.update_xaxes(showgrid=True, gridwidth=1, gridcolor="#e5e7eb")
+    fig_map.update_yaxes(showgrid=True, gridwidth=1, gridcolor="#e5e7eb")
+    st.plotly_chart(fig_map, use_container_width=True)
 
     st.markdown('<div class="section-title">Chi tiết route</div>', unsafe_allow_html=True)
     for idx, route in enumerate(routes, start=1):

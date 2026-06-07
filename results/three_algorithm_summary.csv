@@ -1,0 +1,4 @@
+GROUP,METHOD,DATA_SOURCE,AVG_DISTANCE_CVRP20,AVG_VEHICLES_CVRP20,AVG_RUNTIME_S_CVRP20,PROJECT_WIN_VS_CLARKE_WRIGHT_%,PAPER_WIN_VS_OLD_VRP50_%,PAPER_WIN_VS_OLD_VRP100_%,NOTE
+Thuật toán cũ,Clarke-Wright,Project chạy trực tiếp,6.222,3.85,0.0014,0.0,,,Baseline heuristic truyền thống
+Thuật toán bài báo,Paper RL-BS(10),Số liệu công bố trong bài báo,,,,,99.8,100.0,Paper công bố winning rate; không công bố route từng instance
+Thuật toán đề xuất,Proposed-AGIH-2opt,Project chạy trực tiếp,6.1621,3.85,0.0438,85.0,,,Hybrid insertion + 2-opt + relocate

@@ -1,37 +1,34 @@
 import json
 import pickle
-import pandas as pd
 from pathlib import Path
 
+import pandas as pd
+
 from src.baselines.clarke_wright import solve_clarke_wright
-from src.baselines.ortools_solver import solve_cvrp_ortools
 from src.heuristic.proposed_insertion import solve_proposed_insertion_2opt
 
 
-def add_result(rows, inst, method_name, method_type, routes, cost, runtime, ort_cost):
+def add_result(rows, inst, method_name, method_type, routes, cost, runtime):
     coords = inst["coords"].tolist()
     demands = inst["demands"].tolist()
     capacity = int(inst["capacity"])
 
-    gap_vs_ortools = (cost - ort_cost) / ort_cost * 100 if ort_cost > 0 else 0.0
-
     rows.append({
-        "Instance": inst["id"],
-        "Method": method_name,
-        "Type": method_type,
-        "Distance": round(float(cost), 4),
-        "Vehicles": len(routes),
-        "Runtime": round(float(runtime), 4),
-        "Gap_vs_OR_Tools_%": round(float(gap_vs_ortools), 2),
-        "Capacity": capacity,
-        "Coords": json.dumps(coords),
-        "Demands": json.dumps(demands),
-        "Routes": json.dumps(routes),
+        "INSTANCE": inst["id"],
+        "METHOD": method_name,
+        "TYPE": method_type,
+        "DISTANCE": round(float(cost), 4),
+        "VEHICLES": len(routes),
+        "RUNTIME_S": round(float(runtime), 4),
+        "CAPACITY": capacity,
+        "COORDS": json.dumps(coords),
+        "DEMANDS": json.dumps(demands),
+        "ROUTES": json.dumps(routes),
     })
 
 
 def compute_winning_rates(df):
-    methods = sorted(df["Method"].unique())
+    methods = sorted(df["METHOD"].unique())
     rows = []
 
     for method_a in methods:
@@ -39,140 +36,132 @@ def compute_winning_rates(df):
             if method_a == method_b:
                 continue
 
-            a_df = df[df["Method"] == method_a][["Instance", "Distance"]]
-            b_df = df[df["Method"] == method_b][["Instance", "Distance"]]
+            a_df = df[df["METHOD"] == method_a][["INSTANCE", "DISTANCE"]]
+            b_df = df[df["METHOD"] == method_b][["INSTANCE", "DISTANCE"]]
+            merged = a_df.merge(b_df, on="INSTANCE", suffixes=("_A", "_B"))
 
-            merged = a_df.merge(b_df, on="Instance", suffixes=("_A", "_B"))
             if merged.empty:
                 continue
 
-            wins = (merged["Distance_A"] < merged["Distance_B"]).sum()
-            ties = (merged["Distance_A"] == merged["Distance_B"]).sum()
+            wins = (merged["DISTANCE_A"] < merged["DISTANCE_B"]).sum()
+            ties = (merged["DISTANCE_A"] == merged["DISTANCE_B"]).sum()
             total = len(merged)
-
-            avg_improvement = (
-                (merged["Distance_B"] - merged["Distance_A"]) / merged["Distance_B"] * 100
-            ).mean()
+            avg_improvement = (((merged["DISTANCE_B"] - merged["DISTANCE_A"]) / merged["DISTANCE_B"]) * 100).mean()
 
             rows.append({
-                "Method_A": method_a,
-                "Method_B": method_b,
-                "A_better_than_B_%": round(wins / total * 100, 2),
-                "Tie_%": round(ties / total * 100, 2),
-                "Avg_Improvement_%": round(float(avg_improvement), 2),
-                "Num_Instances": total,
+                "METHOD_A": method_a,
+                "METHOD_B": method_b,
+                "A_BETTER_THAN_B_%": round(float(wins / total * 100), 2),
+                "TIE_%": round(float(ties / total * 100), 2),
+                "AVG_IMPROVEMENT_%": round(float(avg_improvement), 2),
+                "NUM_INSTANCES": total,
             })
 
     return pd.DataFrame(rows)
 
 
-def write_paper_reported_results():
-    """
-    Số liệu này lấy đúng theo bảng winning-rate trong bài Nazari et al. (NeurIPS 2018).
-    Không trộn với kết quả chạy lại trên dataset của project.
-    """
+def create_project_wide(df):
+    rows = []
+
+    for instance, group in df.groupby("INSTANCE"):
+        row = {"INSTANCE": instance}
+        best_method = None
+        best_distance = float("inf")
+
+        for _, item in group.iterrows():
+            key = item["METHOD"].upper().replace("-", "_").replace(" ", "_")
+            row[f"{key}_DISTANCE"] = item["DISTANCE"]
+            row[f"{key}_VEHICLES"] = item["VEHICLES"]
+            row[f"{key}_RUNTIME_S"] = item["RUNTIME_S"]
+
+            if item["DISTANCE"] < best_distance:
+                best_distance = item["DISTANCE"]
+                best_method = item["METHOD"]
+
+        row["BEST_ALGORITHM"] = best_method
+        rows.append(row)
+
+    return pd.DataFrame(rows)
+
+
+def create_paper_reported_results():
+    # Reported from Nazari et al., NeurIPS 2018, Figure 3 tables.
+    # Only keep paper-vs-old heuristic metrics here, so the dashboard stays focused on 3 algorithms.
     rows = [
         {
-            "Problem": "VRP50",
-            "Paper_Method": "RL-BS(10)",
-            "Compared_Method": "CW-Greedy",
-            "Metric": "Winning rate (%)",
-            "Value": 99.8,
-            "Meaning": "RL-BS(10) cho route ngắn hơn CW-Greedy trong 99.8% mẫu VRP50 theo bài báo.",
+            "PAPER_METHOD": "Paper RL-BS(10)",
+            "PROBLEM_SIZE": "VRP50",
+            "COMPARED_WITH": "Clarke-Wright / CW-Greedy",
+            "WINNING_RATE_%": 99.8,
+            "SOURCE_NOTE": "Nazari et al. 2018, Figure 3c",
         },
         {
-            "Problem": "VRP50",
-            "Paper_Method": "RL-BS(10)",
-            "Compared_Method": "OR-Tools",
-            "Metric": "Winning rate (%)",
-            "Value": 60.2,
-            "Meaning": "RL-BS(10) cho route ngắn hơn OR-Tools trong 60.2% mẫu VRP50 theo bài báo.",
-        },
-        {
-            "Problem": "VRP100",
-            "Paper_Method": "RL-BS(10)",
-            "Compared_Method": "CW-Greedy",
-            "Metric": "Winning rate (%)",
-            "Value": 100.0,
-            "Meaning": "RL-BS(10) cho route ngắn hơn CW-Greedy trong 100.0% mẫu VRP100 theo bài báo.",
-        },
-        {
-            "Problem": "VRP100",
-            "Paper_Method": "RL-BS(10)",
-            "Compared_Method": "OR-Tools",
-            "Metric": "Winning rate (%)",
-            "Value": 62.2,
-            "Meaning": "RL-BS(10) cho route ngắn hơn OR-Tools trong 62.2% mẫu VRP100 theo bài báo.",
+            "PAPER_METHOD": "Paper RL-BS(10)",
+            "PROBLEM_SIZE": "VRP100",
+            "COMPARED_WITH": "Clarke-Wright / CW-Greedy",
+            "WINNING_RATE_%": 100.0,
+            "SOURCE_NOTE": "Nazari et al. 2018, Figure 3d",
         },
     ]
-
-    paper_df = pd.DataFrame(rows)
-    paper_df.to_csv("results/paper_reported_results.csv", index=False)
-    return paper_df
+    return pd.DataFrame(rows)
 
 
-def write_three_method_comparison(summary_df, winning_df, paper_df):
-    def get_avg_distance(method):
-        row = summary_df[summary_df["Method"] == method]
-        if row.empty:
+def create_three_algorithm_summary(project_avg, winning_df, paper_df):
+    def get_avg(method, col):
+        found = project_avg[project_avg["METHOD"] == method]
+        if found.empty:
             return None
-        return float(row.iloc[0]["Distance"])
+        return round(float(found.iloc[0][col]), 4)
 
-    def get_avg_runtime(method):
-        row = summary_df[summary_df["Method"] == method]
-        if row.empty:
+    def get_win(method_a, method_b):
+        found = winning_df[(winning_df["METHOD_A"] == method_a) & (winning_df["METHOD_B"] == method_b)]
+        if found.empty:
             return None
-        return float(row.iloc[0]["Runtime"])
+        return round(float(found.iloc[0]["A_BETTER_THAN_B_%"]), 2)
 
-    def get_win_rate(a, b):
-        row = winning_df[(winning_df["Method_A"] == a) & (winning_df["Method_B"] == b)]
-        if row.empty:
-            return None
-        return float(row.iloc[0]["A_better_than_B_%"])
-
-    cw_distance = get_avg_distance("Clarke-Wright")
-    prop_distance = get_avg_distance("Proposed-AGIH-2opt")
-    prop_win_cw = get_win_rate("Proposed-AGIH-2opt", "Clarke-Wright")
-
-    paper_vs_cw = paper_df[
-        (paper_df["Problem"] == "VRP100") &
-        (paper_df["Paper_Method"] == "RL-BS(10)") &
-        (paper_df["Compared_Method"] == "CW-Greedy")
-    ].iloc[0]["Value"]
+    paper_vrp50 = paper_df[paper_df["PROBLEM_SIZE"] == "VRP50"]
+    paper_vrp100 = paper_df[paper_df["PROBLEM_SIZE"] == "VRP100"]
 
     rows = [
         {
-            "Group": "Thuật toán cũ",
-            "Algorithm": "Clarke-Wright Savings",
-            "Source": "Project code",
-            "Evidence": "Chạy trực tiếp trên bộ test ngẫu nhiên của project",
-            "Main_Result": f"Avg Distance = {cw_distance:.4f}" if cw_distance is not None else "N/A",
-            "Note": "Baseline heuristic truyền thống.",
+            "GROUP": "Thuật toán cũ",
+            "METHOD": "Clarke-Wright",
+            "DATA_SOURCE": "Project chạy trực tiếp",
+            "AVG_DISTANCE_CVRP20": get_avg("Clarke-Wright", "DISTANCE"),
+            "AVG_VEHICLES_CVRP20": get_avg("Clarke-Wright", "VEHICLES"),
+            "AVG_RUNTIME_S_CVRP20": get_avg("Clarke-Wright", "RUNTIME_S"),
+            "PROJECT_WIN_VS_CLARKE_WRIGHT_%": 0.0,
+            "PAPER_WIN_VS_OLD_VRP50_%": None,
+            "PAPER_WIN_VS_OLD_VRP100_%": None,
+            "NOTE": "Baseline heuristic truyền thống",
         },
         {
-            "Group": "Thuật toán bài báo",
-            "Algorithm": "Paper RL-BS(10)",
-            "Source": "Nazari et al., NeurIPS 2018 reported result",
-            "Evidence": "Số liệu winning rate đúng theo bài báo, không phải model tự train lại",
-            "Main_Result": f"Thắng CW-Greedy {paper_vs_cw:.1f}% trên VRP100 theo paper",
-            "Note": "Dùng làm mốc tham chiếu bài báo. Route chi tiết không có vì paper không công bố route từng instance.",
+            "GROUP": "Thuật toán bài báo",
+            "METHOD": "Paper RL-BS(10)",
+            "DATA_SOURCE": "Số liệu công bố trong bài báo",
+            "AVG_DISTANCE_CVRP20": None,
+            "AVG_VEHICLES_CVRP20": None,
+            "AVG_RUNTIME_S_CVRP20": None,
+            "PROJECT_WIN_VS_CLARKE_WRIGHT_%": None,
+            "PAPER_WIN_VS_OLD_VRP50_%": round(float(paper_vrp50.iloc[0]["WINNING_RATE_%"]), 2) if not paper_vrp50.empty else None,
+            "PAPER_WIN_VS_OLD_VRP100_%": round(float(paper_vrp100.iloc[0]["WINNING_RATE_%"]), 2) if not paper_vrp100.empty else None,
+            "NOTE": "Paper công bố winning rate; không công bố route từng instance",
         },
         {
-            "Group": "Thuật toán đề xuất",
-            "Algorithm": "Proposed AGIH-2opt",
-            "Source": "Project code",
-            "Evidence": "Chạy trực tiếp trên cùng bộ test với Clarke-Wright",
-            "Main_Result": (
-                f"Avg Distance = {prop_distance:.4f}; thắng Clarke-Wright {prop_win_cw:.2f}% instance"
-                if prop_distance is not None and prop_win_cw is not None else "N/A"
-            ),
-            "Note": "Hybrid insertion + 2-opt + relocate; route chi tiết được hiển thị trong dashboard.",
+            "GROUP": "Thuật toán đề xuất",
+            "METHOD": "Proposed-AGIH-2opt",
+            "DATA_SOURCE": "Project chạy trực tiếp",
+            "AVG_DISTANCE_CVRP20": get_avg("Proposed-AGIH-2opt", "DISTANCE"),
+            "AVG_VEHICLES_CVRP20": get_avg("Proposed-AGIH-2opt", "VEHICLES"),
+            "AVG_RUNTIME_S_CVRP20": get_avg("Proposed-AGIH-2opt", "RUNTIME_S"),
+            "PROJECT_WIN_VS_CLARKE_WRIGHT_%": get_win("Proposed-AGIH-2opt", "Clarke-Wright"),
+            "PAPER_WIN_VS_OLD_VRP50_%": None,
+            "PAPER_WIN_VS_OLD_VRP100_%": None,
+            "NOTE": "Hybrid insertion + 2-opt + relocate",
         },
     ]
 
-    comparison_df = pd.DataFrame(rows)
-    comparison_df.to_csv("results/three_method_comparison.csv", index=False)
-    return comparison_df
+    return pd.DataFrame(rows)
 
 
 def run_experiment(dataset_path="data/cvrp20_test.pkl", max_instances=20):
@@ -191,65 +180,45 @@ def run_experiment(dataset_path="data/cvrp20_test.pkl", max_instances=20):
 
         print(f"Running {inst['id']}...")
 
-        # OR-Tools không phải 1 trong 3 thuật toán chính; dùng làm reference solver cho gap.
-        ort_routes, ort_cost, ort_time = solve_cvrp_ortools(
-            coords, demands, capacity, time_limit=1
-        )
+        cw_routes, cw_cost, cw_time = solve_clarke_wright(coords, demands, capacity)
+        prop_routes, prop_cost, prop_time = solve_proposed_insertion_2opt(coords, demands, capacity)
 
-        # 1. Thuật toán cũ
-        cw_routes, cw_cost, cw_time = solve_clarke_wright(
-            coords, demands, capacity
-        )
-
-        # 2. Thuật toán đề xuất
-        prop_routes, prop_cost, prop_time = solve_proposed_insertion_2opt(
-            coords, demands, capacity
-        )
-
-        # Lưu các thuật toán chạy được trên project.
-        add_result(
-            rows, inst, "Clarke-Wright", "Old heuristic",
-            cw_routes, cw_cost, cw_time, ort_cost
-        )
-
-        add_result(
-            rows, inst, "Proposed-AGIH-2opt", "Proposed method",
-            prop_routes, prop_cost, prop_time, ort_cost
-        )
-
-        add_result(
-            rows, inst, "OR-Tools Reference", "Reference solver",
-            ort_routes, ort_cost, ort_time, ort_cost
-        )
+        add_result(rows, inst, "Clarke-Wright", "Old heuristic", cw_routes, cw_cost, cw_time)
+        add_result(rows, inst, "Proposed-AGIH-2opt", "Proposed method", prop_routes, prop_cost, prop_time)
 
     df = pd.DataFrame(rows)
     df.to_csv("results/results_summary.csv", index=False)
 
-    summary = df.groupby(["Method", "Type"]).agg({
-        "Distance": "mean",
-        "Vehicles": "mean",
-        "Runtime": "mean",
-        "Gap_vs_OR_Tools_%": "mean",
+    project_avg = df.groupby(["METHOD", "TYPE"]).agg({
+        "DISTANCE": "mean",
+        "VEHICLES": "mean",
+        "RUNTIME_S": "mean",
     }).reset_index()
+    project_avg.to_csv("results/results_avg.csv", index=False)
 
-    summary.to_csv("results/results_avg.csv", index=False)
+    project_wide = create_project_wide(df)
+    project_wide.to_csv("results/project_wide.csv", index=False)
 
     winning_df = compute_winning_rates(df)
     winning_df.to_csv("results/winning_rate.csv", index=False)
 
-    paper_df = write_paper_reported_results()
-    comparison_df = write_three_method_comparison(summary, winning_df, paper_df)
+    paper_df = create_paper_reported_results()
+    paper_df.to_csv("results/paper_reported_results.csv", index=False)
+
+    three_summary = create_three_algorithm_summary(project_avg, winning_df, paper_df)
+    three_summary.to_csv("results/three_algorithm_summary.csv", index=False)
 
     print("\nSaved:")
     print("- results/results_summary.csv")
     print("- results/results_avg.csv")
+    print("- results/project_wide.csv")
     print("- results/winning_rate.csv")
     print("- results/paper_reported_results.csv")
-    print("- results/three_method_comparison.csv")
-    print("\nSummary:")
-    print(summary)
-    print("\nThree-method comparison:")
-    print(comparison_df)
+    print("- results/three_algorithm_summary.csv")
+    print("\nProject average:")
+    print(project_avg)
+    print("\nThree algorithm summary:")
+    print(three_summary)
 
 
 if __name__ == "__main__":
